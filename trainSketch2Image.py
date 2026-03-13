@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
+from Utils import save_checkpoint2nd, load_checkpoint2nd
 
 
 # ============================================================
@@ -224,33 +225,38 @@ class UNetFramePredictor(nn.Module):
 # ============================================================
 
 def train():
-    out_dir = "D:/Training Data/FramePredictor_out/"
+    cv2.utils.logging.setLogLevel(cv2.utils.logging.LOG_LEVEL_SILENT)
+    
+    out_dir = "C:/Temp/Crafter/New BOB/FramePredictor_out/"
     os.makedirs(out_dir, exist_ok=True)
     
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = UNetFramePredictor().to(device)
+    opt = torch.optim.Adam(model.parameters(), lr=2e-4)
     # auto-resume if checkpoint exists
     latest = sorted([f for f in os.listdir(out_dir) if f.startswith("checkpoint_step")])
     if latest:
         last_path = os.path.join(out_dir, latest[-1])
-        step, last_loss, A_w = load_checkpoint(model, opt, last_path)
+        step, last_loss = load_checkpoint2nd(model, opt, last_path)
         print(f"Resuming from step {step} (loss={last_loss})")
     else:
         step = 0
         
-    frames_dir = "D:/Training Data/BobFrames/"
-    sketch_dir = "D:/Training Data/BobSketches/"   # <--- 3-channel sketches here
-    mel_dir    = "D:/Training Data/BobFrames/"
+    frames_dir = "C:/Temp/Crafter/New BOB/BobFrames/"
+    sketch_dir = "C:/Temp/Crafter/New BOB/BobSketches/"   # <--- 3-channel sketches here
+    mel_dir    = "C:/Temp/Crafter/New BOB/BobFrames/"
 
     dataset = FramePredictDataset(frames_dir, sketch_dir, mel_dir)
     loader = DataLoader(dataset, batch_size=2, shuffle=True, num_workers=0)
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    
 
-    model = UNetFramePredictor().to(device)
-    opt = torch.optim.Adam(model.parameters(), lr=2e-4)
+    # model = UNetFramePredictor().to(device)
+    # opt = torch.optim.Adam(model.parameters(), lr=2e-4)
     crit = nn.L1Loss()
 
     step = 0
-    checkpoint_interval = 500   # or whatever you prefer
+    checkpoint_interval = 2000   # or whatever you prefer
     
     for epoch in range(10):
         for prev_small, sketch, mel, img_x in loader:
@@ -266,7 +272,7 @@ def train():
             loss.backward()
             opt.step()
 
-            if step % 100 == 0:
+            if step % 500 == 0:
                 print(f"step {step} | loss {loss.item():.5f}")
                 out = pred[0].detach().cpu().permute(1,2,0).numpy()
                 out = (out * 255).astype(np.uint8)
@@ -277,7 +283,7 @@ def train():
                 
             # --- checkpoint saving ---
             if step % checkpoint_interval == 0 and step > 0:
-                save_checkpoint(model, opt, step, loss.item(), A_w, out_dir)
+                save_checkpoint2nd(model, opt, step, loss.item(), out_dir)
 
             step += 1
 

@@ -1,3 +1,8 @@
+import torch
+import numpy as np
+import os
+
+
 def to_uint8_rgb(img_tensor: torch.Tensor) -> np.ndarray:
     """img_tensor: (3,H,W) float [0,1]"""
     arr = img_tensor.detach().cpu().permute(1, 2, 0).numpy()
@@ -65,6 +70,36 @@ def load_checkpoint(model, optimizer, path):
     return step, loss, A_w
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+def save_checkpoint2nd(model, optimizer, step, loss, out_dir):
+    ckpt = {
+        "model": model.state_dict(),
+        "optimizer": optimizer.state_dict(),
+        "step": step,
+        "loss": float(loss)
+    }
+    fname = os.path.join(out_dir, f"checkpoint_step_{step:06d}.pth")
+    torch.save(ckpt, fname)
+    print(f"[checkpoint] saved {fname}")
+
+
+
+
+def load_checkpoint2nd(model, optimizer, path):
+    ckpt = torch.load(path, map_location="cpu")
+    model.load_state_dict(ckpt["model"])
+    optimizer.load_state_dict(ckpt["optimizer"])
+    step = ckpt["step"]
+    loss = ckpt["loss"]
+    print(f"[checkpoint] loaded {path} (step={step}, loss={loss})")
+    return step, loss
     
     
 # ------------------------ Visualization helpers --------------------------------
