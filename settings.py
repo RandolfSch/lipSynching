@@ -2,19 +2,19 @@ import mediapipe as mp
 from typing import Dict, List, Tuple, Optional
 
 # ------------------------ MediaPipe setup & helpers ----------------------------
-mp_drawing = mp.solutions.drawing_utils
-mp_connections = mp.solutions.face_mesh_connections
-mp_face_mesh_module = mp.solutions.face_mesh
+# mp_drawing = mp.solutions.drawing_utils
+# mp_connections = mp.solutions.face_mesh_connections
+# mp_face_mesh_module = mp.solutions.face_mesh
 
 
 # Which MP subsets to use
-USE_SETS = ("LIPS", "LEFT_EYE", "RIGHT_EYE", "NOSE")
-SETNAME2SET = {
-    "LIPS": mp_connections.FACEMESH_LIPS,
-    "LEFT_EYE": mp_connections.FACEMESH_LEFT_EYE,
-    "RIGHT_EYE": mp_connections.FACEMESH_RIGHT_EYE,
-    "NOSE": mp_connections.FACEMESH_NOSE,
-}
+# USE_SETS = ("LIPS", "LEFT_EYE", "RIGHT_EYE", "NOSE")
+# SETNAME2SET = {
+#     "LIPS": mp_connections.FACEMESH_LIPS,
+#     "LEFT_EYE": mp_connections.FACEMESH_LEFT_EYE,
+#     "RIGHT_EYE": mp_connections.FACEMESH_RIGHT_EYE,
+#     "NOSE": mp_connections.FACEMESH_NOSE,
+# }
 
 def build_selected_raw_ids_and_labels() -> Tuple[List[int], Dict[int, int]]:
     """

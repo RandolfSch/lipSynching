@@ -3,7 +3,7 @@ import numpy as np
 import os
 import cv2
 
-from settings import RAW_IDS, RAWID2CLS, RAWID2IDX, N_NODES, mp_drawing, mp_connections, mp_face_mesh_module, USE_SETS, SETNAME2SET
+# from settings import RAW_IDS, RAWID2CLS, RAWID2IDX, N_NODES, mp_drawing, mp_connections, mp_face_mesh_module, USE_SETS, SETNAME2SET
 
 def to_uint8_rgb(img_tensor: torch.Tensor) -> np.ndarray:
     """img_tensor: (3,H,W) float [0,1]"""

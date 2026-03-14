@@ -250,24 +250,24 @@ def silence_opencv():
 def train():
     silence_opencv()
     
-    out_dir = "C:/Temp/Crafter/New BOB/FramePredictor_out/"
+    out_dir = "C:/Temp/Crafter/Carmen/CarmenFrames_out/"
     os.makedirs(out_dir, exist_ok=True)
     
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = UNetFramePredictor().to(device)
     opt = torch.optim.Adam(model.parameters(), lr=2e-4)
     # auto-resume if checkpoint exists
-    latest = sorted([f for f in os.listdir(out_dir) if f.startswith("checkpoint_step")])
-    if latest:
-        last_path = os.path.join(out_dir, latest[-1])
-        step, last_loss = load_checkpoint2nd(model, opt, last_path)
-        print(f"Resuming from step {step} (loss={last_loss})")
-    else:
-        step = 0
+    # latest = sorted([f for f in os.listdir(out_dir) if f.startswith("checkpoint_step")])
+    # if latest:
+    #     last_path = os.path.join(out_dir, latest[-1])
+    #     step, last_loss = load_checkpoint2nd(model, opt, last_path)
+    #     print(f"Resuming from step {step} (loss={last_loss})")
+    # else:
+    #     step = 0
         
-    frames_dir = "D:/Training Data/CarmenFrames/"
-    sketch_dir = "D:/Training Data/CarmenSketches/"   # <--- 3-channel sketches here
-    mel_dir    = "D:/Training Data/CarmenFrames/"
+    frames_dir = "C:/Temp/Crafter/Carmen/CarmenFrames/"
+    sketch_dir = "C:/Temp/Crafter/Carmen/CarmenSketches/"   # <--- 3-channel sketches here
+    mel_dir    = "C:/Temp/Crafter/Carmen/CarmenFrames/"
 
     dataset = FramePredictDataset(frames_dir, sketch_dir, mel_dir)
     loader = DataLoader(dataset, batch_size=2, shuffle=True, num_workers=0)
@@ -281,7 +281,7 @@ def train():
     step = 0
     checkpoint_interval = 2000   # or whatever you prefer
     
-    for epoch in range(10):
+    for epoch in range(20):
         for prev_small, sketch, mel, img_x in loader:
             prev_small = prev_small.to(device)
             sketch     = sketch.to(device)
