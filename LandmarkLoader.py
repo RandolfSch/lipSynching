@@ -31,6 +31,52 @@ def collate_landmark_batch(batch):
 
     # imgs4_list stays Python-native: List[B][4][H][W][3]
     return coords_seq_t, gt_xy5_t, mel_t, imgs4_list
+    
+    
+    
+    
+
+def collate_landmark_batch_padmel(batch, pad_value: float = 0.0):
+    """
+    batch = list of (coords_seq, gt_xy5, mel, imgs4)
+      coords_seq: (4,N,2)
+      gt_xy5:     (N,2)
+      mel:        (1,H,W)  # H,W may differ across items
+      imgs4:      list of 4 numpy RGB images
+    Returns:
+      coords_seq_t: (B,4,N,2)
+      gt_xy5_t:     (B,N,2)
+      mel_t:        (B,1,Hmax,Wmax)  # padded
+      imgs4_list:   list of lists (B × 4) of images (unchanged)
+    """
+    coords_seq_list, gt_xy5_list, mel_list, imgs4_list = [], [], [], []
+    for coords_seq, gt_xy5, mel, imgs4 in batch:
+        coords_seq_list.append(coords_seq)
+        gt_xy5_list.append(gt_xy5)
+        mel_list.append(mel)
+        imgs4_list.append(imgs4)
+
+    coords_seq_t = torch.stack(coords_seq_list, dim=0)  # (B,4,N,2)
+    gt_xy5_t     = torch.stack(gt_xy5_list, dim=0)      # (B,N,2)
+
+    # ----- pad mel both dims -----
+    Hs = [m.shape[-2] for m in mel_list]
+    Ws = [m.shape[-1] for m in mel_list]
+    Hmax, Wmax = max(Hs), max(Ws)
+
+    padded = []
+    for m in mel_list:
+        _, H, W = m.shape
+        if H == Hmax and W == Wmax:
+            padded.append(m)
+        else:
+            out = torch.full((1, Hmax, Wmax), float(pad_value), dtype=m.dtype)
+            out[:, :H, :W] = m  # top-left align
+            padded.append(out)
+    mel_t = torch.stack(padded, dim=0)  # (B,1,Hmax,Wmax)
+
+    return coords_seq_t, gt_xy5_t, mel_t, imgs4_list
+
 
 
 

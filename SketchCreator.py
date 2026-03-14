@@ -173,3 +173,4 @@ if __name__ == "__main__":
 
 
 # python SketchCreator.py --in_dir "D:\Training Data\BobFrames" --out_dir "D:\Training Data\BobSketches" --width 256 --height 256 --thickness 2 --point_radius 3
+# python SketchCreator.py --in_dir "D:/Training Data/CarmenFrames" --out_dir "D:/Training Data/Carmenketches" --width 256 --height 256 --thickness 2 --point_radius 3

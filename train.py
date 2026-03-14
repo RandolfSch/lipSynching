@@ -14,11 +14,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
+from settings import RAW_IDS, RAWID2CLS, RAWID2IDX, N_NODES, mp_drawing, mp_connections, mp_face_mesh_module, USE_SETS, SETNAME2SET
+
 # --- Your data module (change 'dl' to your filename) ---
-from dl import LipSyncDataset, CollatePadMel  # or lipsync_collate_pad_mel
-from LandmarkLoader import LipSyncLandmarkDataset, collate_landmark_batch
-
-
+from dataloader import LipSyncDataset, CollatePadMel  # or lipsync_collate_pad_mel
+from LandmarkLoader import LipSyncLandmarkDataset, collate_landmark_batch_padmel
 
 
 from Utils import to_uint8_rgb, collect_canonical_template_from_loader, save_checkpoint, load_checkpoint
@@ -36,43 +36,8 @@ try:
 except Exception:
     pass
 
-# ------------------------ MediaPipe setup & helpers ----------------------------
-mp_drawing = mp.solutions.drawing_utils
-mp_connections = mp.solutions.face_mesh_connections
-mp_face_mesh_module = mp.solutions.face_mesh
 
-# Which MP subsets to use
-USE_SETS = ("LIPS", "LEFT_EYE", "RIGHT_EYE", "NOSE")
-SETNAME2SET = {
-    "LIPS": mp_connections.FACEMESH_LIPS,
-    "LEFT_EYE": mp_connections.FACEMESH_LEFT_EYE,
-    "RIGHT_EYE": mp_connections.FACEMESH_RIGHT_EYE,
-    "NOSE": mp_connections.FACEMESH_NOSE,
-}
 
-def build_selected_raw_ids_and_labels() -> Tuple[List[int], Dict[int, int]]:
-    """
-    Returns:
-        raw_ids: sorted list of unique MP landmark ids across the selected sets.
-        raw_id_to_class: map raw landmark id -> class index (0..len(USE_SETS)-1).
-    """
-    raw_ids = set()
-    raw_id_to_class = {}
-    for ci, setname in enumerate(USE_SETS):
-        S = SETNAME2SET[setname]
-        for (i, j) in S:
-            raw_ids.add(i); raw_ids.add(j)
-            # Assign first seen class (OK: each id belongs to one region here)
-            if i not in raw_id_to_class:
-                raw_id_to_class[i] = ci
-            if j not in raw_id_to_class:
-                raw_id_to_class[j] = ci
-    raw_ids = sorted(raw_ids)
-    return raw_ids, raw_id_to_class
-
-RAW_IDS, RAWID2CLS = build_selected_raw_ids_and_labels()
-RAWID2IDX = {rid: k for k, rid in enumerate(RAW_IDS)}
-N_NODES = len(RAW_IDS)
 
 def run_facemesh_landmarks(image_rgb: np.ndarray,
                            mp_face_mesh) -> Optional[np.ndarray]:
@@ -263,9 +228,9 @@ class TemporalGraphPredictor(nn.Module):
 
 def main():
     # ----------------- Paths & hyper-params -----------------
-    frames_dir = r"D:/Training Data/BobFrames/"
-    mels_dir   = r"D:/Training Data/BobFrames/"
-    out_dir    = r"D:/Training Data/BobFrames_Out"
+    frames_dir = r"D:/Training Data/CarmenFrames/"
+    mels_dir   = r"D:/Training Data/CarmenFrames/"
+    out_dir    = r"D:/Training Data/CarmenFrames_out"
     os.makedirs(out_dir, exist_ok=True)
 
     batch_size = 8           # keep small while running MediaPipe in-loop
@@ -303,8 +268,8 @@ def main():
     # )
     
     dataset = LipSyncLandmarkDataset(
-        frames_dir="D:/Training Data/BobFrames/",
-        mels_dir="D:/Training Data/BobFrames/",
+        frames_dir="D:/Training Data/CarmenFrames/",
+        mels_dir="D:/Training Data/CarmenFrames/",
         sequence_length=5,
         return_images4=True
     )
@@ -319,7 +284,7 @@ def main():
         num_workers=0,
         pin_memory=False,
         persistent_workers=False,
-        collate_fn=collate_landmark_batch,     # <-- FIX
+        collate_fn=collate_landmark_batch_padmel,     # <-- FIX
     )
 
 

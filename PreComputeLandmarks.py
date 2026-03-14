@@ -76,5 +76,5 @@ def precompute_landmarks(frames_dir):
     print("Precomputation complete.")
 
 if __name__ == "__main__":
-    frames_dir = r"D:/Training Data/BobFrames/"
+    frames_dir = r"D:/Training Data/CarmenFrames/"
     precompute_landmarks(frames_dir)

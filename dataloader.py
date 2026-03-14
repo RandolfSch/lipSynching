@@ -54,17 +54,13 @@ class CollatePadMel:
 
 
 
+
 class LipSyncDataset(Dataset):
     """
     Yields:
         imgs: Tensor (L, C, H, W) of L consecutive frames (last aligns with mel)
-        mel:  Tensor (1, H_mel, W_mel), dtype=float32
+        mel:  Tensor (1, H_mel, W_mel)  # loaded AS IS (no crop/resize)
         meta: dict with paths/ids
-
-    Assumptions:
-      - Frames follow naming 'vid_{VID}_{FRAME}.png', e.g. vid_004_093.png
-      - Mels are named identically but with .tiff or .tif
-      - Sequences do not cross video boundaries.
     """
 
     def __init__(
@@ -76,25 +72,11 @@ class LipSyncDataset(Dataset):
         transform: Optional[Any] = None,
         mel_transform: Optional[Any] = None,
         enforce_consecutive: bool = True,
-        mel_height_target: Optional[int] = None,
+        mel_height_target: Optional[int] = None,   # kept for backward compatibility, not used now
         mel_pad_value: float = 0.0,
         return_paths: bool = False,
         recursive: bool = True,
     ):
-        """
-        Args:
-            frames_dir: Directory containing frame images.
-            mels_dir:   Directory containing mel .tiff/.tif (defaults to frames_dir if None).
-            sequence_length: Number of consecutive frames (last aligns with mel).
-            image_extensions: Frame extensions to include.
-            transform:   Transform for images (default = ToTensor()).
-            mel_transform: Transform for mel tensor (applied after conversion to (1,H,W) float32).
-            enforce_consecutive: Require frame indices to differ by exactly +1.
-            mel_height_target: If set, crop/pad mel height to this value.
-            mel_pad_value: Value used for mel padding.
-            return_paths: Include full paths in meta.
-            recursive:   Recurse into subdirectories.
-        """
         super().__init__()
         self.frames_dir = frames_dir
         self.mels_dir = mels_dir or frames_dir
@@ -105,12 +87,16 @@ class LipSyncDataset(Dataset):
         self.transform = transform or T.ToTensor()
         self.mel_transform = mel_transform
         self.enforce_consecutive = enforce_consecutive
+
+        # kept for compatibility but not used to modify mel
         self.mel_height_target = mel_height_target
         self.mel_pad_value = float(mel_pad_value)
+
         self.return_paths = return_paths
         self.recursive = recursive
 
         self.samples = self._build_index()
+
 
     def _gather_frame_files(self) -> List[str]:
         if self.recursive:
@@ -253,6 +239,7 @@ class LipSyncDataset(Dataset):
     def __len__(self) -> int:
         return len(self.samples)
 
+
     def __getitem__(self, idx: int):
         rec = self.samples[idx]
         frame_paths = rec["frame_paths"]
@@ -260,17 +247,15 @@ class LipSyncDataset(Dataset):
 
         # Load images
         imgs = [self._load_image_as_tensor(p, self.transform) for p in frame_paths]
-        # (L, C, H, W)
-        imgs = torch.stack(imgs, dim=0)
+        imgs = torch.stack(imgs, dim=0)  # (L, C, H, W)
 
-        # Load mel
-        mel_np = self._load_mel_tiff(mel_path)  # (H, W) float32
-        mel = torch.from_numpy(mel_np).unsqueeze(0)  # (1, H, W)
-        mel = mel[..., :86] if mel.shape[-1] > 86 else mel
+        # Load mel AS IS (no width crop, no height resize)
+        mel_np = self._load_mel_tiff(mel_path)      # (H, W) float32
+        mel = torch.from_numpy(mel_np).unsqueeze(0) # (1, H, W)
+
         if self.mel_transform:
             mel = self.mel_transform(mel)
         mel = mel.to(torch.float32)
-        mel = self._maybe_resize_mel_height(mel)
 
         meta = {
             "video_id": rec["video_id"],
@@ -282,6 +267,7 @@ class LipSyncDataset(Dataset):
             meta["mel_path"] = mel_path
 
         return imgs, mel, meta
+
 
 
 def lipsync_collate_pad_mel(batch: List[Tuple[torch.Tensor, torch.Tensor, Dict[str, Any]]], pad_value: float = 0.0):

@@ -224,8 +224,31 @@ class UNetFramePredictor(nn.Module):
 # 3. Training loop
 # ============================================================
 
+
+def silence_opencv():
+    import os, cv2
+
+    # Try the newer API: cv2.utils.logging
+    if hasattr(cv2, "utils") and hasattr(cv2.utils, "logging"):
+        lvl = getattr(cv2.utils.logging, "LOG_LEVEL_SILENT", 0)
+        cv2.utils.logging.setLogLevel(lvl)
+        return
+
+    # Try the legacy/global API: cv2.setLogLevel / cv2.LOG_LEVEL_SILENT
+    if hasattr(cv2, "setLogLevel") and hasattr(cv2, "LOG_LEVEL_SILENT"):
+        cv2.setLogLevel(cv2.LOG_LEVEL_SILENT)
+        return
+
+    # Fallback: environment variable (works for many builds)
+    # Must be set before OpenCV initialization; safest to export before Python starts.
+    os.environ.setdefault("OPENCV_LOG_LEVEL", "SILENT")
+
+
+
+
+
 def train():
-    cv2.utils.logging.setLogLevel(cv2.utils.logging.LOG_LEVEL_SILENT)
+    silence_opencv()
     
     out_dir = "C:/Temp/Crafter/New BOB/FramePredictor_out/"
     os.makedirs(out_dir, exist_ok=True)
@@ -242,9 +265,9 @@ def train():
     else:
         step = 0
         
-    frames_dir = "C:/Temp/Crafter/New BOB/BobFrames/"
-    sketch_dir = "C:/Temp/Crafter/New BOB/BobSketches/"   # <--- 3-channel sketches here
-    mel_dir    = "C:/Temp/Crafter/New BOB/BobFrames/"
+    frames_dir = "D:/Training Data/CarmenFrames/"
+    sketch_dir = "D:/Training Data/CarmenSketches/"   # <--- 3-channel sketches here
+    mel_dir    = "D:/Training Data/CarmenFrames/"
 
     dataset = FramePredictDataset(frames_dir, sketch_dir, mel_dir)
     loader = DataLoader(dataset, batch_size=2, shuffle=True, num_workers=0)
