@@ -247,35 +247,63 @@ def silence_opencv():
 
 
 
+def find_latest_checkpoint(out_dir: str):
+    """
+    Returns (path, step) of the latest checkpoint by numeric step, or (None, None) if none found.
+    """
+    ckpts = glob.glob(os.path.join(out_dir, "checkpoint_step_*.pth"))
+    if not ckpts:
+        return None, None
+
+    best = None
+    best_step = -1
+    pat = re.compile(r"checkpoint_step_(\d+)\.pth$")
+    for p in ckpts:
+        m = pat.search(os.path.basename(p))
+        if not m:
+            continue
+        step = int(m.group(1))
+        if step > best_step:
+            best_step = step
+            best = p
+    return best, best_step
+
+
+
+
+
 def train():
     silence_opencv()
     
     out_dir = "C:/Temp/Crafter/Carmen/CarmenFrames_out/"
     os.makedirs(out_dir, exist_ok=True)
-    
+
+    # Where to copy the last checkpoint ONCE after all epochs finish:
+    final_copy_dir = "C:/Temp/Crafter/code/lipSynching"
+    os.makedirs(final_copy_dir, exist_ok=True)
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = UNetFramePredictor().to(device)
     opt = torch.optim.Adam(model.parameters(), lr=2e-4)
-    # auto-resume if checkpoint exists
-    # latest = sorted([f for f in os.listdir(out_dir) if f.startswith("checkpoint_step")])
-    # if latest:
-    #     last_path = os.path.join(out_dir, latest[-1])
-    #     step, last_loss = load_checkpoint2nd(model, opt, last_path)
-    #     print(f"Resuming from step {step} (loss={last_loss})")
-    # else:
-    #     step = 0
-        
+
     frames_dir = "C:/Temp/Crafter/Carmen/CarmenFrames/"
-    sketch_dir = "C:/Temp/Crafter/Carmen/CarmenSketches/"   # <--- 3-channel sketches here
+    sketch_dir = "C:/Temp/Crafter/Carmen/CarmenSketches/"
     mel_dir    = "C:/Temp/Crafter/Carmen/CarmenFrames/"
+    
+    
+    auto-resume if checkpoint exists
+    latest = sorted([f for f in os.listdir(out_dir) if f.startswith("checkpoint_step")])
+    if latest:
+        last_path = os.path.join(out_dir, latest[-1])
+        step, last_loss = load_checkpoint2nd(model, opt, last_path)
+        print(f"Resuming from step {step} (loss={last_loss})")
+    else:
+        step = 0
+
 
     dataset = FramePredictDataset(frames_dir, sketch_dir, mel_dir)
     loader = DataLoader(dataset, batch_size=2, shuffle=True, num_workers=0)
 
-    
-
-    # model = UNetFramePredictor().to(device)
-    # opt = torch.optim.Adam(model.parameters(), lr=2e-4)
     crit = nn.L1Loss()
 
     step = 0
@@ -309,6 +337,21 @@ def train():
                 save_checkpoint2nd(model, opt, step, loss.item(), out_dir)
 
             step += 1
+
+
+    # ------------------ post-training (copy ONCE) ------------------
+    # Find the latest checkpoint and copy it to final_copy_dir
+    latest_path, latest_step = find_latest_checkpoint(out_dir)
+    if latest_path is None:
+        print("[post] No checkpoints found; nothing to copy.")
+    else:
+        dest_path = os.path.join(final_copy_dir, os.path.basename(latest_path))
+        # Only copy if not already present (optional)
+        if not os.path.exists(dest_path):
+            shutil.copy2(latest_path, dest_path)
+            print(f"[post] Copied latest checkpoint (step {latest_step}) to: {dest_path}")
+        else:
+            print(f"[post] Destination already has latest checkpoint: {dest_path}")
 
 
 if __name__ == "__main__":
