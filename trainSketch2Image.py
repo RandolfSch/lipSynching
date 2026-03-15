@@ -291,7 +291,7 @@ def train():
     mel_dir    = "C:/Temp/Crafter/Carmen/CarmenFrames/"
     
     
-    auto-resume if checkpoint exists
+    # auto-resume if checkpoint exists
     latest = sorted([f for f in os.listdir(out_dir) if f.startswith("checkpoint_step")])
     if latest:
         last_path = os.path.join(out_dir, latest[-1])
@@ -307,9 +307,9 @@ def train():
     crit = nn.L1Loss()
 
     step = 0
-    checkpoint_interval = 2000   # or whatever you prefer
+    checkpoint_interval = 4000   # or whatever you prefer
     
-    for epoch in range(20):
+    for epoch in range(25):
         for prev_small, sketch, mel, img_x in loader:
             prev_small = prev_small.to(device)
             sketch     = sketch.to(device)
@@ -323,7 +323,7 @@ def train():
             loss.backward()
             opt.step()
 
-            if step % 500 == 0:
+            if step % 5000 == 0:
                 print(f"step {step} | loss {loss.item():.5f}")
                 out = pred[0].detach().cpu().permute(1,2,0).numpy()
                 out = (out * 255).astype(np.uint8)
